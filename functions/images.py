@@ -1,7 +1,7 @@
 import requests
 import json
 
-def buscar_imagenes(keyword):
+def get_image_by_keyword(keyword):
     # Configurar los parámetros de la solicitud
     url = 'https://api.unsplash.com/search/photos'
     parameters = {
@@ -14,12 +14,11 @@ def buscar_imagenes(keyword):
     response = requests.get(url, params=parameters)
     data = json.loads(response.text)
 
-    # Extraer las URL de las imágenes de la respuesta
-    urls = data['results'][0]['urls']['regular']
+    if len(data['results']) > 0:
+        urls = data['results'][0]['urls']['regular']
+    else:   
+        urls = "https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg"
     return urls
 
-# Ejemplo de uso
-key_word = 'physics'
-urls_images = buscar_imagenes(key_word)
-print(urls_images)
+
 
