@@ -8,12 +8,3 @@ def execute_query(cypher_query):
         result = session.run(cypher_query)
         return result.data()
     
-consulta = '''MATCH (user)-[:tookCourse]->(course)
-                WITH course.name AS courseName, COUNT(user) AS userCount
-                RETURN courseName, userCount
-                ORDER BY userCount DESC
-                LIMIT 10'''
-resultado = execute_query(consulta)
-for i in resultado:
-    print("------------")
-    print(i)
