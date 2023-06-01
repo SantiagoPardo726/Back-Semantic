@@ -190,4 +190,4 @@ def detail_course(course:str):
         key.append(ke)
 
 
-    return {"course":[basic, cat, lesson, key]}
+    return {"course":{"basic":basic, "category":cat, "lessons":lesson, "keyTerms":key}}
