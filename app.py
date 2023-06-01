@@ -114,6 +114,7 @@ def courses_partners(username:str):
 
 @app.get("/detail_course/{course}")
 def detail_course(course:str):
+    image = images.get_image_by_keyword(course);
     queryGetBasicInfo = f'''
     PREFIX uexvocab: <http://www.uniandes.web.semantica.ejemplo.org/voca#>
     SELECT DISTINCT ?course ?name ?language ?description ?link
@@ -190,4 +191,4 @@ def detail_course(course:str):
         key.append(ke)
 
 
-    return {"course":{"basic":basic, "category":cat, "lessons":lesson, "keyTerms":key}}
+    return {"course":{"basic":basic, "category":cat, "lessons":lesson, "keyTerms":key, "image":image}}
