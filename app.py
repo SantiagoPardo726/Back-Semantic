@@ -229,13 +229,14 @@ def categories():
         cate.append(c)
     return {"categories":cate}
 
-@app.post("/create_course/")
+@app.post("/create_course")
 async def create_course(item: dict):
     saved_item = create_course(item)
     return {"message": saved_item}
 
 def create_course(item:dict):
     global g
+    print(item)
 
     course = UEX["course"+item["course"]["basic"]["name"].replace(" ", "")]
     ng.add((course, RDF.type, UEXVOCAV.Course))
@@ -257,13 +258,6 @@ def create_course(item:dict):
         ng.add((course, UEXVOCAV.hasLesson, lesson))
         ng.add((lesson, UEXVOCAV.lessonHas, course))
     
-    for ke in item["course"]["keyTerms"]:
-        keyTerm = UEX[ke["term"].replace(" ", "")]
-        ng.add((keyTerm, RDF.type, UEXVOCAV.KeyTerm))
-        ng.add((keyTerm, UEXVOCAV.hasTerm, Literal(ke["term"])))
-        ng.add((keyTerm, UEXVOCAV.dbpediaLink, Literal(ke["link"])))
-
-        ng.add((course, UEXVOCAV.hasKeyTerm, keyTerm))
 
     print("Vale pa")
     conforms, results_graph, results_text = pyshacl.validate(
