@@ -8,10 +8,18 @@ from functions import images
 from functions import neo4jRequests
 
 from rdflib import Graph, Literal, Namespace, RDF
+from fastapi.middleware.cors import CORSMiddleware
 
 import pyshacl
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 g = Graph()
 g.parse("InferenceDef.rdf")
