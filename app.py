@@ -7,12 +7,23 @@ from functions import images
 
 from functions import neo4jRequests
 
-from rdflib import Graph
+from rdflib import Graph, Literal, Namespace, RDF
+
+import pyshacl
 
 app = FastAPI()
 
 g = Graph()
-g.parse("inferenceDef.rdf")
+g.parse("InferenceDef.rdf")
+UEX = Namespace("http://www.uniandes.web.semantica.example.org/")
+UEXVOCAV = Namespace("http://www.uniandes.web.semantica.ejemplo.org/voca#")
+
+s = Graph()
+s.parse("ShapeCourse.rdf", format="turtle")
+
+ng = Graph()
+ng.parse("justClassCat.rdf")
+
 
 @app.get("/")
 def read_root():
@@ -68,7 +79,7 @@ def favorite_category(username:str):
         query2 = f'''
             MATCH (category)-[:ns0__hasCourse]->(relatedCourse)
             WHERE category.ns0__name = "{cat["name"]}"
-            RETURN  relatedCourse.ns0_name as name, relatedCourse.ns0language as language, relatedCourse.ns0_description as description, relatedCourse.uri as uri
+            RETURN  relatedCourse.ns0__name as name, relatedCourse.ns0__language as language, relatedCourse.ns0__description as description, relatedCourse.uri as uri
         '''
         exc = neo4jRequests.execute_query(query2)
         if len(exc)>=10:
@@ -168,7 +179,7 @@ def detail_course(course:str):
     lesson = []
 
     for re in result:
-        le = {"name":str(re["name"]), "content":re["content"], "uri":re["lesson"]}
+        le = {"name":str(re["name"]), "content":str(re["content"]), "uri":str(re["lesson"])}
         lesson.append(le)
 
     getKeys = f'''
@@ -187,8 +198,94 @@ def detail_course(course:str):
     key = []
 
     for re in result:
-        ke = {"term":str(re["term"]), "link":re["links"].split(","), "uri":re["keyTerm"]}
+        ke = {"term":str(re["term"]), "link":re["links"].split(","), "uri":str(re["keyTerm"])}
         key.append(ke)
 
 
     return {"course":{"basic":basic, "category":cat, "lessons":lesson, "keyTerms":key, "image":image}}
+
+@app.get("/categories")
+def categories():
+    query = '''
+    PREFIX uexvocab: <http://www.uniandes.web.semantica.ejemplo.org/voca#>
+    SELECT DISTINCT ?categoryName ?category
+    WHERE {
+    ?category a uexvocab:Category.
+    ?category uexvocab:name ?categoryName.
+    }
+    '''
+    result = g.query(query)
+    cate = []
+    for re in result:
+        c = {"name":str(re["categoryName"]), "uri":str(re["category"])}
+        cate.append(c)
+    return {"categories":cate}
+
+@app.post("/create_course/")
+async def create_course(item: dict):
+    saved_item = create_course(item)
+    return {"message": saved_item}
+
+def create_course(item:dict):
+    global g
+
+    course = UEX["course"+item["course"]["basic"]["name"].replace(" ", "")]
+    ng.add((course, RDF.type, UEXVOCAV.Course))
+    ng.add((course, UEXVOCAV.name, Literal(item["course"]["basic"]["name"])))
+    ng.add((course, UEXVOCAV.link, Literal(item["course"]["basic"]["link"])))
+    ng.add((course, UEXVOCAV.description, Literal(item["course"]["basic"]["description"])))
+    ng.add((course, UEXVOCAV.language, Literal(item["course"]["basic"]["language"])))
+
+    ng.add((UEX[item["course"]["category"]["uri"].replace("http://www.uniandes.web.semantica.example.org/", "")], UEXVOCAV.hasCourse, course))
+    ng.add((course, UEXVOCAV.courseHas, (UEX[item["course"]["category"]["uri"].replace("http://www.uniandes.web.semantica.example.org/", "")])))
+
+
+    for le in item["course"]["lessons"]:
+        lesson = UEX["newL"+le["name"].replace(" ", "")]
+        ng.add((lesson, RDF.type, UEXVOCAV.Lesson))
+        ng.add((lesson, UEXVOCAV.name, Literal(le["name"])))
+        ng.add((lesson, UEXVOCAV.hasContent, Literal(le["content"])))
+
+        ng.add((course, UEXVOCAV.hasLesson, lesson))
+        ng.add((lesson, UEXVOCAV.lessonHas, course))
+    
+    for ke in item["course"]["keyTerms"]:
+        keyTerm = UEX[ke["term"].replace(" ", "")]
+        ng.add((keyTerm, RDF.type, UEXVOCAV.KeyTerm))
+        ng.add((keyTerm, UEXVOCAV.hasTerm, Literal(ke["term"])))
+        ng.add((keyTerm, UEXVOCAV.dbpediaLink, Literal(ke["link"])))
+
+        ng.add((course, UEXVOCAV.hasKeyTerm, keyTerm))
+
+    print("Vale pa")
+    conforms, results_graph, results_text = pyshacl.validate(
+    data_graph=ng,
+    shacl_graph=s,
+    inference='rdfs'
+    )
+
+    if conforms:
+        g = g+ng
+        return "Curso válido en el Shape, se añadió a la ontología"
+    else:
+        return "Curso no válido en el Shape, no se pudo añadir a la ontología"
+    
+@app.get("/related-courses/{keyTerm}")
+def related_courses(keyTerm:str):
+    getCourses = f'''
+    PREFIX uexvocab: <http://www.uniandes.web.semantica.ejemplo.org/voca#>
+    PREFIX uex: <http://www.uniandes.web.semantica.example.org/>
+    SELECT DISTINCT ?cuName
+    WHERE {{
+    ?course uexvocab:hasKeyTerm ?keyTerm.
+    ?keyTerm uexvocab:hasTerm ?term.
+    ?course uexvocab:name ?cuName.
+    FILTER(str(?term) = "{keyTerm}")
+    }}
+    '''
+    result = g.query(getCourses)
+    ans=[]
+    for r in result:
+        print(r["cuName"])
+        ans.append(r["cuName"])
+    return {"courses":ans}

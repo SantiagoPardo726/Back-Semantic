@@ -1,0 +1,56 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix uexvocab: <http://www.uniandes.web.semantica.ejemplo.org/voca#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+uexvocab:CourseShape
+    a sh:NodeShape ;
+    sh:targetClass uexvocab:Course ;
+    sh:closed false ;
+    sh:property [
+        sh:path rdf:type ;
+        sh:not [
+            sh:in (uexvocab:Category uexvocab:Lesson uexvocab:KeyTerm uexvocab:RelatedContent uexvocab:Person)
+        ] ;
+        sh:message "Course cannot have the classes Category, Lesson, KeyTerm, RelatedContent, or Person."
+    ] ;
+    sh:property [
+        sh:path uexvocab:courseHas ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "Course must have exactly one hasCourse property with a category as the domain and course as the range."
+    ] ;
+    sh:property [
+        sh:path uexvocab:hasLesson ;
+        sh:minCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "Course must have at least one hasLesson property with a Lesson as the range."
+    ] ;
+    sh:property [
+        sh:path uexvocab:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Course must have exactly one name property of type string."
+    ] ;
+    sh:property [
+        sh:path uexvocab:description ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:message "Course must have at least one description property of type string."
+    ] ;
+    sh:property [
+        sh:path uexvocab:language ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Course must have exactly one language property of type string."
+    ] ;
+    sh:property [
+        sh:path uexvocab:meanTime ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:message "Course must have at most one meanTime property of type string."
+    ] .
